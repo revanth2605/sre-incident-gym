@@ -1,6 +1,6 @@
 """
 SRE-Incident-Gym FastAPI Server
-Exposes the environment as a web API on port 7860 (Hugging Face standard).
+Exposes the environment as a web API on port 8000 (internal API port).
 Endpoints: /reset, /step, /state, /health
 """
 
@@ -229,4 +229,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -37,6 +37,21 @@ Included components:
 
 ---
 
+## Recent Updates (April 2026)
+
+These updates polish the runtime and deployment experience for a production-style hackathon submission:
+
+- Backend now runs on port `8000` (internal) while Streamlit continues to expose port `7860` (external).
+- `start.sh` launches FastAPI bound to `0.0.0.0:8000`, waits for the backend to be ready, then launches Streamlit on `0.0.0.0:7860`.
+- `Dockerfile` updated to create and run as a non-root user with UID `1000` and copy files using `--chown` to avoid permission errors on hosted platforms (Hugging Face Spaces).
+- Streamlit dashboard (`dashboard.py`) now retries `/state` up to 5 times with a short delay, and renders CPU and reward using Plotly gauges for clearer observability.
+- The environment (`environment.py`) exposes a lightweight `close()` method and the FastAPI server registers SIGTERM handlers to call it for clean shutdowns inside containers.
+- LLM integration falls back to a deterministic heuristic if `OPENAI_API_KEY` is not provided; set the `OPENAI_API_KEY` secret when running on hosted CI/platforms to enable LLM-driven evaluation.
+
+These changes fix common runtime failures (permission, port collisions, and missing dependencies) and improve demo reliability.
+
+---
+
 ## The "Mission Control" Dashboard
 
 The Streamlit dashboard provides an interactive mission control for runs:
