@@ -7,6 +7,7 @@ Endpoints: /reset, /step, /state, /health
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 from pydantic import BaseModel, Field
 from fastapi.middleware.wsgi import WSGIMiddleware
 from starlette.responses import RedirectResponse
@@ -94,27 +95,24 @@ app.add_middleware(
 )
 
 
-@app.post("/reset", response_model=ResetResponse)
-async def reset(request: ResetRequest):
-    """
-    Reset the environment to initial state for a given task.
-    
-    Args:
-        request: ResetRequest with task level (1, 2, or 3)
-        
-    Returns:
-        ResetResponse with initial observation and task description
-    """
+@app.post("/reset")
+async def reset(request: Request):
     global env
     try:
-        observation = env.reset(task=request.task)
+        try:
+            body = await request.json()
+            task = body.get("task", 1)
+        except:
+            task = 1  # fallback if no body
+
+        observation = env.reset(task=task)
         task_description = env.get_task_description()
-        return ResetResponse(
-            observation=observation,
-            task_description=task_description
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+
+        return {
+            "observation": observation,
+            "task_description": task_description
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
 
