@@ -7,7 +7,7 @@ import time
 # Prefer environment variable; fallback to local loopback (used in Docker/HF Spaces)
 # The FastAPI backend runs internally on port 8000; Streamlit uses 7860 as the external port.
 # Use 'localhost' instead of 127.0.0.1 so inter-process requests resolve inside containers.
-API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE = os.getenv("API_BASE_URL", "http://localhost:7860")
 
 st.set_page_config(page_title="SRE Incident Mission Control", layout="wide")
 

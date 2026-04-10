@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from fastapi.middleware.wsgi import WSGIMiddleware
+from starlette.responses import RedirectResponse
 from typing import Optional, Dict, Any
 import json
 import traceback
@@ -252,7 +254,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
-        port=8000, 
+        port=7860, 
         proxy_headers=True, 
         forwarded_allow_ips="*"
     )
