@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# 1. Start FastAPI backend on port 7860 (from the new location)
 echo "Starting FastAPI backend on port 7860..."
-python main.py &
+python -m server.app &
 FASTAPI_PID=$!
 
 echo "Waiting for FastAPI to be ready..."
@@ -18,11 +19,12 @@ while ! curl -s http://localhost:7860/health > /dev/null; do
 done
 
 echo "Backend is UP! Starting Streamlit on port 8501..."
+# Note: Streamlit stays at the root or wherever your dashboard.py is
 streamlit run dashboard.py \
     --server.port 8501 \
     --server.address 0.0.0.0 \
     --server.enableCORS False \
     --server.enableXsrfProtection False &
 
-# Keep the container alive by waiting on FastAPI
+# Keep the container alive
 wait $FASTAPI_PID

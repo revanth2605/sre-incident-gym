@@ -18,7 +18,10 @@ import os
 import random
 from typing import Any, Literal, Optional
 
-from openenv_core import Action, Environment, Observation, State, create_app
+try:
+    from openenv.core import Action, Environment, Observation, State, create_app
+except ImportError:
+    from openenv_core import Action, Environment, Observation, State, create_app
 from pydantic import Field
 
 # ---------------------------------------------------------------------------
@@ -330,12 +333,18 @@ app = create_app(
 # ---------------------------------------------------------------------------
 
 def run() -> None:
-    """Start the OpenEnv server. Called via `sre-incident-gym-server` CLI."""
+    """Start the OpenEnv server."""
     import uvicorn
+    import sys
+    
+    # Force the current directory into the path so 'server' is visible
+    current_dir = os.getcwd()
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
 
     port = int(os.environ.get("PORT", 7860))
     uvicorn.run(
-        "server.app:app",
+        "server.app:app",  # This looks for server/app.py
         host="0.0.0.0",
         port=port,
         proxy_headers=True,
