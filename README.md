@@ -41,12 +41,12 @@ Included components:
 
 These updates polish the runtime and deployment experience for a production-style hackathon submission:
 
-- Backend now runs on port `8000` (internal) while Streamlit continues to expose port `7860` (external).
-- `start.sh` launches FastAPI bound to `0.0.0.0:8000`, waits for the backend to be ready, then launches Streamlit on `0.0.0.0:7860`.
-- `Dockerfile` updated to create and run as a non-root user with UID `1000` and copy files using `--chown` to avoid permission errors on hosted platforms (Hugging Face Spaces).
-- Streamlit dashboard (`dashboard.py`) now retries `/state` up to 5 times with a short delay, and renders CPU and reward using Plotly gauges for clearer observability.
-- The environment (`environment.py`) exposes a lightweight `close()` method and the FastAPI server registers SIGTERM handlers to call it for clean shutdowns inside containers.
-- LLM integration falls back to a deterministic heuristic if `OPENAI_API_KEY` is not provided; set the `OPENAI_API_KEY` secret when running on hosted CI/platforms to enable LLM-driven evaluation.
+- Backend now runs on port `7860` (primary external port), ensuring OpenEnv validators can directly access `/reset` and `/step` endpoints without proxy issues.
+- `start.sh` launches FastAPI bound to `0.0.0.0:7860`, waits for the backend to become healthy, and then starts Streamlit on `0.0.0.0:8501`, keeping the API as the primary entry point.
+- `Dockerfile` updated to run using a non-root user (UID `1000`) with `--chown` permissions to prevent filesystem and permission issues on hosted platforms like Hugging Face Spaces.
+- Streamlit dashboard (`dashboard.py`) now retries `/state` up to 5 times with a short delay and uses Plotly gauges for improved visualization of CPU load and reward metrics.
+- The environment (`environment.py`) includes a lightweight `close()` method, and the FastAPI server handles graceful shutdown using SIGTERM signals for better container lifecycle management.
+- LLM integration includes a fallback to a deterministic heuristic when `OPENAI_API_KEY` is not provided, ensuring stable execution in environments without API access. Set the `OPENAI_API_KEY` secret to enable full LLM-driven evaluation.
 
 These changes fix common runtime failures (permission, port collisions, and missing dependencies) and improve demo reliability.
 
