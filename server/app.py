@@ -343,5 +343,10 @@ def run() -> None:
     )
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Console entry point expected by the OpenEnv validator."""
     run()
+
+
+if __name__ == "__main__":
+    main()

@@ -37,7 +37,8 @@ dependencies = [
 
 # ── Required by the OpenEnv validator ──────────────────────────────────────
 [project.scripts]
-sre-incident-gym-server = "server.app:run"
+server = "server.app:main"
+sre-incident-gym-server = "server.app:main"
 
 [project.optional-dependencies]
 dev = [
