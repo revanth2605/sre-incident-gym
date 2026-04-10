@@ -24,7 +24,8 @@ except Exception:
 # CONFIGURATION
 # ============================================================================
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:7860")
+# Change 7860 to 8000
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 
