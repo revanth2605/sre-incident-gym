@@ -26,4 +26,8 @@ echo "Backend is UP and healthy! Starting Streamlit..."
 
 # 3. Start Streamlit (Port 7860 is required for Hugging Face)
 # 'exec' replaces the shell with the streamlit process so it catches shutdown signals correctly
-exec streamlit run dashboard.py --server.port 7860 --server.address 0.0.0.0
+exec streamlit run dashboard.py \
+    --server.port 7860 \
+    --server.address 0.0.0.0 \
+    --server.enableCORS False \
+    --server.enableXsrfProtection False

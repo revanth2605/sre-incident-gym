@@ -85,9 +85,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=False, # Must be False if allow_origins is "*"
+    allow_methods=["*"], 
     allow_headers=["*"],
 )
 
@@ -248,4 +248,11 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # proxy_headers and forwarded_allow_ips are critical for HF Spaces
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        proxy_headers=True, 
+        forwarded_allow_ips="*"
+    )
