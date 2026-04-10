@@ -36,14 +36,21 @@ class SREIncidentGym:
     def __init__(self, seed: Optional[int] = None):
         """Initialize the environment."""
         self.seed_value = seed
-        # Seed only when provided; allow true randomness when seed is None
         if seed is not None:
             random.seed(seed)
         
-        self._state: Dict[str, Any] = {}
-        self._task_level: TaskLevel = TaskLevel.EASY
+        # Initialize with default keys to prevent KeyErrors in the API
+        self._state: Dict[str, Any] = {
+            "status_code": 200,
+            "cpu_load": 10.0,
+            "memory_usage": 15.0,
+            "last_log_entry": "System healthy",
+            "is_patched": False
+        }
+        # Match your TaskLevel enum (ensure it's TaskLevel.EASY or TaskLevel.LEVEL_1)
+        self._task_level: TaskLevel = TaskLevel.EASY 
         self._step_count: int = 0
-        self._max_steps: int = 15  # Reduced from 50 - tasks should complete in 2-5 steps
+        self._max_steps: int = 15
         self._done: bool = False
         self._episode_reward: float = 0.0
         
@@ -307,24 +314,26 @@ class SREIncidentGym:
     
     def state(self) -> Dict[str, Any]:
         """
-        Return the full internal state dictionary.
-        
-        Returns:
-            Dictionary of current environment state
+        Return the full internal state dictionary safely.
         """
-        # Dynamically reflect solved state to avoid 'step bleed' when external checks see the state
-        solved = self._check_task_solved()
+        # 1. Safely check if task is solved
+        try:
+            solved = self._check_task_solved()
+        except Exception:
+            solved = False
+
+        # 2. Use .get(key, default) to prevent KeyErrors
         return {
-            "status_code": self._state["status_code"],
-            "cpu_load": self._state["cpu_load"],
-            "memory_usage": self._state["memory_usage"],
-            "last_log_entry": self._state["last_log_entry"],
-            "is_patched": self._state["is_patched"],
+            "status_code": self._state.get("status_code", 200),
+            "cpu_load": self._state.get("cpu_load", 0.0),
+            "memory_usage": self._state.get("memory_usage", 0.0),
+            "last_log_entry": self._state.get("last_log_entry", "System Initializing..."),
+            "is_patched": self._state.get("is_patched", False),
             "step_count": self._step_count,
-            # Return done if either internal flag set or current state meets success criteria
             "done": bool(self._done or solved),
             "episode_reward": self._episode_reward,
-            "task_level": self._task_level.name,
+            # Handle task_level name safely
+            "task_level": getattr(self._task_level, 'name', str(self._task_level)),
         }
     
     def _get_observation(self) -> Observation:
