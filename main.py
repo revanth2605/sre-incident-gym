@@ -168,18 +168,28 @@ async def step(request: StepRequest):
 
 @app.get("/state", response_model=StateResponse)
 async def state():
-    """
-    Get the full internal state of the environment.
-    
-    Returns:
-        StateResponse with complete state dictionary
-    """
     global env
+    
+    # 1. Safety check: Is the environment initialized?
+    if env is None:
+        raise HTTPException(status_code=503, detail="Environment not initialized. Please call /reset first.")
+    
     try:
-        env_state = env.state()
-        return StateResponse(state=env_state)
+        # 2. Try to find the state method (handles different naming styles)
+        if hasattr(env, 'state'):
+            current_state = env.state()
+        elif hasattr(env, 'get_state'):
+            current_state = env.get_state()
+        else:
+            # Fallback: manually return the internal dict if possible
+            current_state = getattr(env, '_state', {"status": "initialized"})
+            
+        return StateResponse(state=current_state)
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"State retrieval failed: {str(e)}")
+        # This will print the actual error to your Hugging Face Logs
+        print(f"CRITICAL ERROR in /state: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health", response_model=HealthResponse)
