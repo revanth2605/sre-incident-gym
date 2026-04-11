@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-# 1. Start Streamlit on internal port 8501
+# 1. Start Streamlit on internal port 8501 with base path /dashboard
 echo "Starting Streamlit on internal port 8501..."
 streamlit run dashboard.py \
     --server.port 8501 \
     --server.address 0.0.0.0 \
+    --server.baseUrlPath "/dashboard" \
     --server.enableCORS False \
     --server.enableXsrfProtection False &
 
@@ -32,5 +33,5 @@ while ! curl -s http://localhost:7860/health > /dev/null; do
 done
 echo "FastAPI is UP on port 7860!"
 
-# 4. Keep container alive by waiting on FastAPI process
+# 4. Keep container alive
 wait $FASTAPI_PID

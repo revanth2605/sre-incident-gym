@@ -419,7 +419,12 @@ from fastapi.responses import Response, RedirectResponse
 from starlette.background import BackgroundTask
 
 STREAMLIT_URL = "http://localhost:8501"
-_proxy_client = httpx.AsyncClient(base_url=STREAMLIT_URL, timeout=30.0)
+# follow_redirects=False so we can rewrite Streamlit redirect locations
+_proxy_client = httpx.AsyncClient(
+    base_url=STREAMLIT_URL,
+    timeout=30.0,
+    follow_redirects=False,
+)
 
 
 @app.get("/")
@@ -432,8 +437,12 @@ async def root():
 @app.get("/dashboard/{path:path}")
 @app.post("/dashboard/{path:path}")
 async def streamlit_proxy(request: Request, path: str = ""):
-    """Reverse proxy — forward /dashboard/* to Streamlit on port 8501."""
-    url = httpx.URL(path=f"/{path}", query=request.url.query.encode())
+    """Reverse proxy — forward /dashboard/* to Streamlit on 8501.
+    Rewrites any Location headers so Streamlit redirects stay within /dashboard/.
+    """
+    # Streamlit expects requests under /dashboard/ (with trailing slash)
+    proxy_path = f"/dashboard/{path}" if path else "/dashboard/"
+    url = httpx.URL(path=proxy_path, query=request.url.query.encode())
     rp_req = _proxy_client.build_request(
         request.method,
         url,
@@ -443,11 +452,26 @@ async def streamlit_proxy(request: Request, path: str = ""):
     )
     try:
         rp_resp = await _proxy_client.send(rp_req, stream=True)
+        content = await rp_resp.aread()
+
+        # Rewrite response headers — strip hop-by-hop and fix redirects
+        headers = {}
+        for k, v in rp_resp.headers.items():
+            if k.lower() in ("transfer-encoding", "connection"):
+                continue
+            # Rewrite Location so Streamlit's own redirects go through our proxy
+            if k.lower() == "location":
+                if v.startswith("http://localhost:8501"):
+                    v = v.replace("http://localhost:8501", "/dashboard", 1)
+                elif v.startswith("/") and not v.startswith("/dashboard"):
+                    v = f"/dashboard{v}"
+            headers[k] = v
+
         return Response(
-            content=await rp_resp.aread(),
+            content=content,
             status_code=rp_resp.status_code,
-            headers=dict(rp_resp.headers),
+            headers=headers,
             background=BackgroundTask(rp_resp.aclose),
         )
-    except Exception:
-        return RedirectResponse(url="http://localhost:8501")
+    except Exception as e:
+        return Response(content=f"Dashboard unavailable: {e}", status_code=503)
