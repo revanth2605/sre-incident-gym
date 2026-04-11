@@ -18,10 +18,7 @@ import os
 import random
 from typing import Any, Literal, Optional
 
-try:
-    from openenv.core import Action, Environment, Observation, State, create_app
-except ImportError:
-    from openenv_core import Action, Environment, Observation, State, create_app
+from openenv_core import Action, Environment, Observation, State, create_app
 from pydantic import Field
 
 # ---------------------------------------------------------------------------
@@ -333,18 +330,12 @@ app = create_app(
 # ---------------------------------------------------------------------------
 
 def run() -> None:
-    """Start the OpenEnv server."""
+    """Start the OpenEnv server. Called via `sre-incident-gym-server` CLI."""
     import uvicorn
-    import sys
-    
-    # Force the current directory into the path so 'server' is visible
-    current_dir = os.getcwd()
-    if current_dir not in sys.path:
-        sys.path.insert(0, current_dir)
 
     port = int(os.environ.get("PORT", 7860))
     uvicorn.run(
-        "server.app:app",  # This looks for server/app.py
+        "server.app:app",
         host="0.0.0.0",
         port=port,
         proxy_headers=True,
@@ -352,10 +343,67 @@ def run() -> None:
     )
 
 
-def main() -> None:
-    """Console entry point expected by the OpenEnv validator."""
+if __name__ == "__main__":
     run()
 
 
-if __name__ == "__main__":
-    main()
+# ---------------------------------------------------------------------------
+# /api/* endpoints for dashboard.py
+# These use a separate prefix to avoid conflicting with create_app() routes.
+# dashboard.py must set API_BASE_URL = http://localhost:8000/api
+# ---------------------------------------------------------------------------
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+_dashboard_env: Optional[SREIncidentEnvironment] = None
+
+
+@app.post("/api/reset")
+async def api_reset(request: Request):
+    global _dashboard_env
+    body = await request.json()
+    task = int(body.get("task", 1))
+    if _dashboard_env is None:
+        _dashboard_env = SREIncidentEnvironment()
+    obs = _dashboard_env.reset(task=task)
+    return {
+        "observation": obs.model_dump(),
+        "reward": None,
+        "done": False,
+        "task_description": _TASK_DESCS.get(_dashboard_env._task, ""),
+    }
+
+
+@app.post("/api/step")
+async def api_step(request: Request):
+    global _dashboard_env
+    if _dashboard_env is None:
+        _dashboard_env = SREIncidentEnvironment()
+    body = await request.json()
+    action_data = body.get("action", {})
+    action = SREAction(**action_data)
+    obs = _dashboard_env.step(action)
+    return {
+        "observation": obs.model_dump(),
+        "reward": obs.reward,
+        "done": obs.done,
+    }
+
+
+@app.get("/api/state")
+async def api_state():
+    global _dashboard_env
+    if _dashboard_env is None:
+        return JSONResponse({
+            "status_code": 200, "cpu_load": 0.0, "memory_usage": 0.0,
+            "last_log_entry": "Not yet reset — click Reset Environment.",
+            "is_patched": False, "done": False,
+            "episode_reward": 0.0, "step_count": 0, "task_level": "EASY",
+        })
+    return JSONResponse(_dashboard_env.state.model_dump())
+
+
+@app.get("/api/health")
+async def api_health():
+    return {"status": "healthy", "version": "1.0.0"}
