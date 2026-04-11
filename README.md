@@ -230,7 +230,7 @@ The agent converges to near-optimal behaviour — solving most tasks in a single
 | Agent | Overall Score | Success Rate |
 |:---|:---:|:---:|
 | **PPO RL Agent (trained)** | **0.875** | **100%** |
-| **GPT-4 Rule Agent** | **0.530** | **100%** |
+| **GPT-3.5-turbo Rule Agent** | **0.530** | **100%** |
 | **Random Baseline** | **0.180** | **25%** |
 
 ### Per-task PPO performance (20 episodes each)
@@ -313,7 +313,7 @@ curl -X POST http://localhost:8000/api/step \
 ### Run evaluations
 
 ```bash
-python inference.py           # LLM-driven evaluation (set OPENAI_API_KEY env var)
+python inference.py           # LLM-driven evaluation (set OPENAI_API_KEY, MODEL_NAME, API_BASE_URL, HF_TOKEN as environment variables)
 python baseline_test.py       # Random policy baseline
 python rl_train.py --eval     # PPO agent evaluation across all tasks
 python rl_train.py --compare  # PPO vs random baseline comparison
