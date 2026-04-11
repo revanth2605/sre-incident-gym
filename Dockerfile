@@ -31,8 +31,8 @@ RUN chmod +x $HOME/app/start.sh
 
 EXPOSE 7860
 
-# FastAPI runs on 8000 internally; Streamlit on 7860 publicly
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://127.0.0.1:8000/health || exit 1
+# FastAPI is on 7860 (primary public port — validator hits this)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://127.0.0.1:7860/health || exit 1
 
 CMD ["./start.sh"]

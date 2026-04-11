@@ -7,7 +7,7 @@ import streamlit as st
 import requests
 
 # ── API base ────────────────────────────────────────────────────────
-API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/api")
+API_BASE = os.getenv("API_BASE_URL", "http://localhost:7860/api")
 
 # ── Page config ─────────────────────────────────────────────────────
 st.set_page_config(

@@ -1,31 +1,36 @@
 #!/usr/bin/env bash
 set -e
 
-# Start FastAPI backend on internal port 8000
-echo "Starting OpenEnv FastAPI server on port 8000..."
+# 1. Start Streamlit on internal port 8501
+echo "Starting Streamlit on internal port 8501..."
+streamlit run dashboard.py \
+    --server.port 8501 \
+    --server.address 0.0.0.0 \
+    --server.enableCORS False \
+    --server.enableXsrfProtection False &
+
+# 2. Start FastAPI on port 7860 (primary public port — validator hits this)
+echo "Starting FastAPI on port 7860..."
 python -m uvicorn server.app:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port 7860 \
     --proxy-headers \
     --forwarded-allow-ips="*" &
+FASTAPI_PID=$!
 
-# Wait for FastAPI to be healthy
+# 3. Wait for FastAPI to be healthy
 echo "Waiting for FastAPI..."
+MAX_RETRIES=30
 COUNT=0
-while ! curl -s http://localhost:8000/health > /dev/null; do
+while ! curl -s http://localhost:7860/health > /dev/null; do
     sleep 1
     COUNT=$((COUNT+1))
-    if [ $COUNT -ge 30 ]; then
-        echo "Error: FastAPI failed to start."
+    if [ $COUNT -ge $MAX_RETRIES ]; then
+        echo "Error: FastAPI failed to start after $MAX_RETRIES seconds."
         exit 1
     fi
 done
-echo "FastAPI is UP!"
+echo "FastAPI is UP on port 7860!"
 
-# Start Streamlit on port 7860 (public HF Spaces port)
-echo "Starting Streamlit on port 7860..."
-exec streamlit run dashboard.py \
-    --server.port 7860 \
-    --server.address 0.0.0.0 \
-    --server.enableCORS False \
-    --server.enableXsrfProtection False
+# 4. Keep container alive by waiting on FastAPI process
+wait $FASTAPI_PID

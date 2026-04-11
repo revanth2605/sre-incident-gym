@@ -407,3 +407,47 @@ async def api_state():
 @app.get("/api/health")
 async def api_health():
     return {"status": "healthy", "version": "1.0.0"}
+
+
+# ---------------------------------------------------------------------------
+# Streamlit reverse proxy — serves dashboard at /dashboard on port 7860
+# so both the OpenEnv validator (/reset, /step) and the UI are on one port.
+# ---------------------------------------------------------------------------
+
+import httpx
+from fastapi.responses import Response, RedirectResponse
+from starlette.background import BackgroundTask
+
+STREAMLIT_URL = "http://localhost:8501"
+_proxy_client = httpx.AsyncClient(base_url=STREAMLIT_URL, timeout=30.0)
+
+
+@app.get("/")
+async def root():
+    """Redirect root to dashboard."""
+    return RedirectResponse(url="/dashboard")
+
+
+@app.get("/dashboard")
+@app.get("/dashboard/{path:path}")
+@app.post("/dashboard/{path:path}")
+async def streamlit_proxy(request: Request, path: str = ""):
+    """Reverse proxy — forward /dashboard/* to Streamlit on port 8501."""
+    url = httpx.URL(path=f"/{path}", query=request.url.query.encode())
+    rp_req = _proxy_client.build_request(
+        request.method,
+        url,
+        headers={k: v for k, v in request.headers.items()
+                 if k.lower() not in ("host", "connection")},
+        content=await request.body(),
+    )
+    try:
+        rp_resp = await _proxy_client.send(rp_req, stream=True)
+        return Response(
+            content=await rp_resp.aread(),
+            status_code=rp_resp.status_code,
+            headers=dict(rp_resp.headers),
+            background=BackgroundTask(rp_resp.aclose),
+        )
+    except Exception:
+        return RedirectResponse(url="http://localhost:8501")
