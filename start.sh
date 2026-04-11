@@ -6,7 +6,7 @@ echo "Starting Streamlit on internal port 8501..."
 streamlit run dashboard.py \
     --server.port 8501 \
     --server.address 0.0.0.0 \
-    --server.baseUrlPath "/dashboard" \
+    --server.baseUrlPath "/" \
     --server.enableCORS False \
     --server.enableXsrfProtection False &
 

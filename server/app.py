@@ -332,7 +332,6 @@ app = create_app(
 def run() -> None:
     """Start the OpenEnv server. Called via `sre-incident-gym-server` CLI."""
     import uvicorn
-
     port = int(os.environ.get("PORT", 7860))
     uvicorn.run(
         "server.app:app",
@@ -343,8 +342,13 @@ def run() -> None:
     )
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main entry point — required by OpenEnv validator."""
     run()
+
+
+if __name__ == "__main__":
+    main()
 
 
 # ---------------------------------------------------------------------------
@@ -414,64 +418,17 @@ async def api_health():
 # so both the OpenEnv validator (/reset, /step) and the UI are on one port.
 # ---------------------------------------------------------------------------
 
-import httpx
-from fastapi.responses import Response, RedirectResponse
-from starlette.background import BackgroundTask
+# ---------------------------------------------------------------------------
+# Streamlit is served directly on port 8501 with baseUrlPath=/dashboard
+# Users access it via HuggingFace's built-in port routing.
+# We just add a redirect from / to the Streamlit URL for convenience.
+# ---------------------------------------------------------------------------
 
-STREAMLIT_URL = "http://localhost:8501"
-# follow_redirects=False so we can rewrite Streamlit redirect locations
-_proxy_client = httpx.AsyncClient(
-    base_url=STREAMLIT_URL,
-    timeout=30.0,
-    follow_redirects=False,
-)
+from fastapi.responses import RedirectResponse as _Redirect
 
+STREAMLIT_PORT = 8501
 
 @app.get("/")
 async def root():
-    """Redirect root to dashboard."""
-    return RedirectResponse(url="/dashboard")
-
-
-@app.get("/dashboard")
-@app.get("/dashboard/{path:path}")
-@app.post("/dashboard/{path:path}")
-async def streamlit_proxy(request: Request, path: str = ""):
-    """Reverse proxy — forward /dashboard/* to Streamlit on 8501.
-    Rewrites any Location headers so Streamlit redirects stay within /dashboard/.
-    """
-    # Streamlit expects requests under /dashboard/ (with trailing slash)
-    proxy_path = f"/dashboard/{path}" if path else "/dashboard/"
-    url = httpx.URL(path=proxy_path, query=request.url.query.encode())
-    rp_req = _proxy_client.build_request(
-        request.method,
-        url,
-        headers={k: v for k, v in request.headers.items()
-                 if k.lower() not in ("host", "connection")},
-        content=await request.body(),
-    )
-    try:
-        rp_resp = await _proxy_client.send(rp_req, stream=True)
-        content = await rp_resp.aread()
-
-        # Rewrite response headers — strip hop-by-hop and fix redirects
-        headers = {}
-        for k, v in rp_resp.headers.items():
-            if k.lower() in ("transfer-encoding", "connection"):
-                continue
-            # Rewrite Location so Streamlit's own redirects go through our proxy
-            if k.lower() == "location":
-                if v.startswith("http://localhost:8501"):
-                    v = v.replace("http://localhost:8501", "/dashboard", 1)
-                elif v.startswith("/") and not v.startswith("/dashboard"):
-                    v = f"/dashboard{v}"
-            headers[k] = v
-
-        return Response(
-            content=content,
-            status_code=rp_resp.status_code,
-            headers=headers,
-            background=BackgroundTask(rp_resp.aclose),
-        )
-    except Exception as e:
-        return Response(content=f"Dashboard unavailable: {e}", status_code=503)
+    """Redirect root to Streamlit dashboard."""
+    return _Redirect(url=f"http://localhost:{STREAMLIT_PORT}/dashboard")

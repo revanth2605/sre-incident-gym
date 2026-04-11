@@ -37,7 +37,6 @@ dependencies = [
 
 # ── Required by the OpenEnv validator ──────────────────────────────────────
 [project.scripts]
-server = "server.app:main"
 sre-incident-gym-server = "server.app:main"
 
 [project.optional-dependencies]
@@ -50,10 +49,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/revanth2605/sre-incident-gym"
-Documentation = "https://github.com/revanth2605/sre-incident-gym#readme"
-Repository = "https://github.com/revanth2605/sre-incident-gym.git"
-Issues = "https://github.com/revanth2605/sre-incident-gym/issues"
+Homepage = "https://github.com/yourusername/sre-incident-gym"
+Documentation = "https://github.com/yourusername/sre-incident-gym#readme"
+Repository = "https://github.com/yourusername/sre-incident-gym.git"
+Issues = "https://github.com/yourusername/sre-incident-gym/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
