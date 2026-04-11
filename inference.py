@@ -6,6 +6,7 @@ Prints logs in the exact OpenEnv format required.
 """
 
 import os
+
 import sys
 import json
 import time
@@ -29,7 +30,7 @@ except Exception:
 # These MUST be separate. The validator injects API_BASE_URL as their LLM URL
 # (e.g. https://litellm.sclr.ac), NOT your environment URL.
 ENV_URL      = os.getenv("ENV_URL",      "https://revanthkothamasu26-sre-incident-gym.hf.space")
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN     = os.getenv("HF_TOKEN",     "")
 
@@ -303,7 +304,11 @@ if __name__ == "__main__":
         sys.exit(0 if score > 0.3 else 1)
     except KeyboardInterrupt:
         print("\n[INTERRUPTED] Evaluation stopped by user")
+        # Print [END] line for validator compliance
+        print("[END] success=false steps=0 score=0.00 rewards=")
         sys.exit(1)
     except Exception as e:
         print(f"\n[FATAL] {e}", file=sys.stderr)
+        # Print [END] line for validator compliance
+        print("[END] success=false steps=0 score=0.00 rewards=")
         sys.exit(1)
