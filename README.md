@@ -56,7 +56,7 @@ sre-incident-gym/
 ├── rl_env.py           # Gymnasium wrapper for RL training
 ├── rl_train.py         # PPO training script (stable-baselines3)
 ├── dashboard.py        # Streamlit Mission Control UI
-├── inference.py        # LLM-based agent evaluation harness
+├── inference.py        # LLM-based agent evaluation (efficiency-based scoring aligned with MTTR)
 ├── baseline_test.py    # Random policy baseline evaluator
 ├── start.sh            # Container startup script
 ├── Dockerfile          # Docker build (trains RL model at build time)
@@ -179,6 +179,22 @@ The reward engine uses dense shaping to produce a clear learning signal at every
 
 All rewards are clamped to `[−1.0, 1.0]`. The per-step penalty is the core MTTR proxy — agents that solve incidents in one step score higher than agents that take three steps to reach the same outcome.
 
+### Scoring (Evaluation Metric)
+
+During RL training, cumulative reward is used as the learning signal. However, **evaluation of agents at inference time uses an efficiency-based scoring method** that directly aligns with MTTR:
+
+```
+efficiency = 1 - (steps_taken / max_steps)
+score = 0.5 + 0.5 * efficiency
+```
+
+Where:
+- `steps_taken` is the number of actions executed to solve the task
+- `max_steps` is the maximum allowed steps (15 in the benchmark)
+- Scores are bounded to `(0, 1)` to satisfy OpenEnv validator requirements
+
+This metric rewards agents that solve incidents **quickly** — a single-step solution scores higher than a multi-step solution, even if both achieve the same end state. It directly measures Mean Time To Recovery by penalising inefficiency.
+
 ---
 
 ## RL Training
@@ -224,6 +240,8 @@ The agent converges to near-optimal behaviour — solving most tasks in a single
 ---
 
 ## Benchmark Results
+
+**Note:** The values in the tables below represent raw cumulative rewards observed during RL training. Final evaluation scores are computed using the efficiency-based scoring method described in the "Scoring (Evaluation Metric)" section, which directly measures Mean Time To Recovery independent of reward shaping.
 
 ### Overall agent comparison
 
